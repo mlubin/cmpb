@@ -17,6 +17,7 @@ void jl_(jl_value_t*);
 
 int main(int argc, char *argv[])
 {
+    int i;
     /* required: setup the julia context */
     jl_init(JULIA_INIT_DIR);
 
@@ -54,13 +55,13 @@ int main(int argc, char *argv[])
     // c -- objective vector
     objects[5] = (jl_value_t*)jl_alloc_array_1d(float_vector_type, nvar);
     double *data = (double*)jl_array_data(objects[5]);
-    for (int i = 0; i < nvar; i++)
+    for (i = 0; i < nvar; i++)
         data[i] = c[i];
     
     // b -- constraint rhs
     objects[6] = (jl_value_t*)jl_alloc_array_1d(float_vector_type, nconstr);
     data = (double*)jl_array_data(objects[6]);
-    for (int i = 0; i < nconstr; i++)
+    for (i = 0; i < nconstr; i++)
         data[i] = b[i];
 
     // I,J,V -- sparse matrix in triplet form
@@ -71,7 +72,7 @@ int main(int argc, char *argv[])
     int64_t *dataJ = (int64_t*)jl_array_data(objects[8]);
     double *dataV = (double*)jl_array_data(objects[9]);
 
-    for (int i = 0; i < nnz; i++) {
+    for (i = 0; i < nnz; i++) {
         dataI[i] = I[i];
         dataJ[i] = J[i];
         dataV[i] = V[i];
