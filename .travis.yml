@@ -1,0 +1,17 @@
+language: c
+compiler:
+    - gcc
+    - clang
+notifications:
+    email: false
+sudo: false
+before_install:
+    - mkdir -p ~/julia
+    - curl -s -L --retry 7 https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.2-linux-x86_64.tar.gz | tar -C ~/julia -x -z --strip-components=1 -f -
+    - export PATH="${PATH}:${HOME}/julia/bin"
+    - julia -e 'versioninfo()'
+    - julia -e 'Pkg.add("ECOS")'
+script:
+    - cd test
+    - make
+    - ./test
