@@ -1,18 +1,29 @@
 language: c
 compiler:
     - gcc
-    - clang
+#    - clang
 notifications:
     email: false
 sudo: false
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-4.8
+    - g++-4.8
 before_install:
+    - export CC=gcc-4.8
+    - export CXX=g++-4.8
     - mkdir -p ~/julia
     - curl -s -L --retry 7 https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.2-linux-x86_64.tar.gz | tar -C ~/julia -x -z --strip-components=1 -f -
     - export PATH="${PATH}:${HOME}/julia/bin"
     - julia -e 'versioninfo()'
     - julia -e 'Pkg.add("ECOS")'
     - julia -e 'import MathProgBase; import ECOS'
+    - ldd -r /home/travis/julia/lib/julia/libjulia.so
 script:
-    - cd test
     - make
-    - ./test
+    - ldd -r libcmpb.so
+    - make test_cmpb
+    - ./test_cmpb
