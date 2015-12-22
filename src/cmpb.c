@@ -1,5 +1,6 @@
 #include <julia.h>
 #include <string.h>
+#include <cmpb.h>
 
 // internal helper functions
 
@@ -11,7 +12,8 @@ jl_function_t* mpb_get_function(const char *name) {
 }
 
 // MUST GC_PUSH the returned value!
-jl_value_t* mpb_ptr_to_intvec(int64_t *values, int64_t len) {
+// Adds 1 to all terms!
+jl_value_t* mpb_ptr_to_intvec(const int64_t *values, int64_t len) {
 
     jl_value_t *int_vector_type = jl_apply_array_type(jl_int64_type, 1);
 
@@ -20,14 +22,14 @@ jl_value_t* mpb_ptr_to_intvec(int64_t *values, int64_t len) {
 
     int64_t i;
     for (i = 0; i < len; i++) {
-        data[i] = values[i];
+        data[i] = values[i]+1;
     }
 
     return arr;
 }
 
 // MUST GC_PUSH the returned value!
-jl_value_t* mpb_ptr_to_floatvec(double *values, int64_t len) {
+jl_value_t* mpb_ptr_to_floatvec(const double *values, int64_t len) {
 
     jl_value_t *float_vector_type = jl_apply_array_type(jl_float64_type, 1);
 
@@ -45,29 +47,28 @@ jl_value_t* mpb_ptr_to_floatvec(double *values, int64_t len) {
 void mpb_fill_floatvec(jl_value_t *arr, double *output, int64_t len) {
 
     jl_value_t *float_vector_type = jl_apply_array_type(jl_float64_type, 1);
-    assert(jl_typeis(sol, float_vector_type));
-    double *data = (double*)jl_array_data(sol);
+    assert(jl_typeis(arr, float_vector_type));
     assert(jl_array_len(arr) >= len);
 
     int i;
-    double *data = (double*)jl_array_data(sol);
-    for (i = 0; i < numvar; i++) {
+    double *data = (double*)jl_array_data(arr);
+    for (i = 0; i < len; i++) {
         output[i] = data[i];
     }
 }
 
 // MUST GC_PUSH the returned value!
-jl_value_t* mpb_triplet_to_sparse(int64_t *I, int64_t *J, double *V, int64_t nnz, int64_t m, int64_t n) {
+jl_value_t* mpb_triplet_to_sparse(const int64_t *I, const int64_t *J, const double *V, int64_t nnz, int64_t m, int64_t n) {
 
     // in the same order as the arguments to sparse()
     jl_value_t **objects;
     JL_GC_PUSHARGS(objects, 5);
 
-    objects[1] = mpb_ptr_to_intvec(I,nnz);
-    objects[2] = mpb_ptr_to_intvec(J,nnz);
-    objects[3] = mpb_ptr_to_floatvec(V,nnz);
-    objects[4] = jl_box_int64(m);
-    objects[5] = jl_box_int64(n);
+    objects[0] = mpb_ptr_to_intvec(I,nnz);
+    objects[1] = mpb_ptr_to_intvec(J,nnz);
+    objects[2] = mpb_ptr_to_floatvec(V,nnz);
+    objects[3] = jl_box_int64(m);
+    objects[4] = jl_box_int64(n);
 
     jl_function_t *sparse_f = jl_get_function(jl_base_module, "sparse");
     jl_value_t *spmat = jl_call(sparse_f, objects, 5);
@@ -78,15 +79,6 @@ jl_value_t* mpb_triplet_to_sparse(int64_t *I, int64_t *J, double *V, int64_t nnz
     return spmat;
 }
 
-#define MPBFREECONE 0
-#define MPBZEROCONE 1
-#define MPBNONNEGCONE 2
-#define MPBNONPOSCONE 3
-#define MPBSOC 4
-#define MPBSOCROTATED 5
-#define MPBSDPCONE 6
-#define MPBEXPPRIMAL 7
-#define MPBEXPDUAL 8
 
 jl_value_t* int_to_symbol(int64_t val) {
     switch (val) {
@@ -116,13 +108,14 @@ jl_value_t* int_to_symbol(int64_t val) {
 
 // MUST GC_PUSH the returned value
 // Generates a vector with a list of cones, to be used as input for loadproblem!
-jl_value_t* mpb_conevector(int64_t numcones, int64_t *conetypes, int64_t **coneindices, int64_t *conelengths) {
+jl_value_t* mpb_conevector(int64_t numcones, const int64_t *conetypes, const int64_t **coneindices, const int64_t *conelengths) {
 
     jl_value_t *conevector = NULL, *indexvector = NULL, *conesymbol = NULL, *conetuple = NULL;
     JL_GC_PUSH4(&conevector, &indexvector, &conesymbol, &conetuple);
     conevector = jl_eval_string("Array(Tuple{Symbol,Any},0)");
     jl_function_t *push_f = jl_get_function(jl_base_module, "push!");
-    int (i = 0; i < numcones; i++) {
+    int i;
+    for (i = 0; i < numcones; i++) {
         conesymbol = int_to_symbol(conetypes[i]);
         indexvector = mpb_ptr_to_intvec(coneindices[i], conelengths[i]);
         conetuple = jl_new_struct(jl_eval_string("Tuple{Symbol,Vector{Int64}}"), conesymbol, indexvector);
@@ -158,7 +151,7 @@ int mpb_initialize() {
 int \
 mpb_ ## prop (void *model, int64_t *output) \
 { \
-    jl_value_t *val = jl_call1(mpb_get_function(prop), (jl_value_t*)model); \
+    jl_value_t *val = jl_call1(mpb_get_function(#prop), (jl_value_t*)model); \
     assert(!jl_exception_occurred()); \
     assert(jl_is_int64(val)); \
     *output = jl_unbox_int64(val); \
@@ -169,7 +162,7 @@ mpb_ ## prop (void *model, int64_t *output) \
 int \
 mpb_ ## prop (void *model, double *output) \
 { \
-    jl_value_t *val = jl_call1(mpb_get_function(prop), (jl_value_t*)model); \
+    jl_value_t *val = jl_call1(mpb_get_function(#prop), (jl_value_t*)model); \
     assert(!jl_exception_occurred()); \
     assert(jl_is_float64(val)); \
     *output = jl_unbox_float64(val); \
@@ -184,25 +177,25 @@ MPBGetFloatProperty(getobjbound);
 MPBGetFloatProperty(getobjgap);
 MPBGetFloatProperty(getsolvetime);
 
-int64_t numcones, int64_t *conetypes, int64_t **coneindices, int64_t *conelengths
+void jl_(jl_value_t*); // for debugging
 
 int mpb_loadproblem(void *model, // model pointer
                     int64_t numvar, // number of variables
                     int64_t numconstr, // number of rows in A
-                    double *c, // objective coefficient vector
-                    int64_t *A_I, // row indices of A in triplet format
-                    int64_t *A_J, // column indices of A in triplet format
-                    double *A_V, // nonzero values of A in triplet format
+                    const double *c, // objective coefficient vector
+                    const int64_t *A_I, // row indices of A in triplet format
+                    const int64_t *A_J, // column indices of A in triplet format
+                    const double *A_V, // nonzero values of A in triplet format
                     int64_t A_nnz, // lengths of A_I, A_J, and A_V
-                    double *b, // right-hand side vector
+                    const double *b, // right-hand side vector
                     int64_t numconstrcones, // number of constraint cones
-                    int64_t *constrconetypes, // types of each constraint cone
-                    int64_t **constrconeindices, // vector of indices for each constraint cone
-                    int64_t *constrconelengths, // number of indices in each constraint cone
+                    const int64_t *constrconetypes, // types of each constraint cone
+                    const int64_t **constrconeindices, // vector of indices for each constraint cone
+                    const int64_t *constrconelengths, // number of indices in each constraint cone
                     int64_t numvarcones, // number of variable cones
-                    int64_t *varconetypes, // types of each variable cone
-                    int64_t **varconeindices, // vector of indices for each variable cone
-                    int64_t *varconelengths // number of indices in each variable cone
+                    const int64_t *varconetypes, // types of each variable cone
+                    const int64_t **varconeindices, // vector of indices for each variable cone
+                    const int64_t *varconelengths // number of indices in each variable cone
                     ) {
 
     jl_value_t *cvec = NULL, *Amat = NULL, *bvec = NULL, *constr_cones = NULL,
@@ -232,8 +225,8 @@ int mpb_loadproblem(void *model, // model pointer
 int mpb_getsolution(void *model, double *output) {
 
     jl_value_t *sol = jl_call1(mpb_get_function("getsolution"), (jl_value_t*)model);
-    assert(!jl_exception_occurred())
-    JL_GC_PUSH(&sol);
+    assert(!jl_exception_occurred());
+    JL_GC_PUSH1(&sol);
 
     int64_t numvar;
     int ret = mpb_numvar(model, &numvar);
@@ -250,8 +243,8 @@ int mpb_getsolution(void *model, double *output) {
 int mpb_getdual(void *model, double *output) {
 
     jl_value_t *sol = jl_call1(mpb_get_function("getdual"), (jl_value_t*)model);
-    assert(!jl_exception_occurred())
-    JL_GC_PUSH(&sol);
+    assert(!jl_exception_occurred());
+    JL_GC_PUSH1(&sol);
 
     int64_t numconstr;
     int ret = mpb_numconstr(model, &numconstr);
