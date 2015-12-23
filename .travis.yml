@@ -14,7 +14,7 @@ before_install:
     - julia -e 'import MathProgBase; import ECOS'
     - ldd -r /home/travis/julia/lib/julia/libjulia.so
 script:
-    - make libcmbp.so
+    - make
     - ldd -r libcmpb.so
     - make test_cmpb
     - ./test_cmpb
