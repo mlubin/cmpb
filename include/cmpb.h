@@ -15,6 +15,7 @@
 #define MPBEXPDUAL 8
 
 int mpb_initialize(void);
+void mpb_atexit(int exitcode);
 
 int mpb_numvar(void *model,int64_t *output);
 int mpb_numconstr(void *model,int64_t *output);
@@ -23,6 +24,12 @@ int mpb_getobjval(void *model,double *output);
 int mpb_getobjbound(void *model,double *output);
 int mpb_getobjgap(void *model,double *output);
 int mpb_getsolvetime(void *model,double *output);
+
+int mpb_new_solver(const char *packagename, const char *solvername, void **output);
+int mpb_free_solver(void *solver);
+int mpb_new_model(void *solver, void **output);
+int mpb_free_model(void *model);
+void mpb_atexit(int exitcode);
 
 
 int mpb_loadproblem(void *model, // model pointer

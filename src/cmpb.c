@@ -1,6 +1,10 @@
 #include <julia.h>
 #include <string.h>
+#include <stdio.h>
 #include <cmpb.h>
+
+
+void jl_(jl_value_t*); // for debugging
 
 // internal helper functions
 
@@ -129,6 +133,29 @@ jl_value_t* mpb_conevector(int64_t numcones, const int64_t *conetypes, const int
     return conevector;
 }
 
+// MUST GC_PUSH the returned value
+jl_value_t* mpb_objectid(jl_value_t *object) {
+
+    jl_function_t *objectid_f = jl_get_function(jl_base_module, "object_id");
+    jl_value_t *id = jl_call1(objectid_f, object);
+    return id;
+}
+
+void mpb_register_object(jl_value_t *object) {
+
+    jl_value_t *object_dict = jl_eval_string("__mpb_object_dict");
+    assert(jl_typeis(object_dict, jl_eval_string("Dict{Any,Any}")));
+    jl_function_t *setindex_f = jl_get_function(jl_base_module, "setindex!");
+    jl_call3(setindex_f, object_dict, mpb_objectid(object), object);
+}
+
+void mpb_release_object(jl_value_t *object) {
+
+    jl_value_t *object_dict = jl_eval_string("__mpb_object_dict");
+    assert(jl_typeis(object_dict, jl_eval_string("Dict{Any,Any}")));
+    jl_function_t *pop_f = jl_get_function(jl_base_module, "pop!");
+    jl_call2(pop_f, object_dict,mpb_objectid(object));
+}
 
 // public functions
 
@@ -140,11 +167,61 @@ int mpb_initialize() {
         assert(!jl_exception_occurred());
         jl_value_t *mpb = jl_eval_string("MathProgBase");
         assert(jl_is_module(mpb));
-
-        // TODO: set up atexit callback
+        // global dictionary of objects we've given out to users
+        // this prevents the GC from freeing them
+        jl_eval_string("__mpb_object_dict = Dict{Any,Any}()");
     }
 
     return 0; // success
+}
+
+int mpb_new_solver(const char *packagename, const char *solvername, void **output) {
+    char tmp[30];
+    snprintf(tmp, 30, "using %s", packagename);
+    jl_eval_string(tmp);
+    assert(!jl_exception_occurred());
+
+    jl_value_t *solver = jl_eval_string(solvername);
+    JL_GC_PUSH1(&solver);
+    mpb_register_object(solver);
+    JL_GC_POP();
+
+    *output = solver;
+
+    return 0;
+}
+
+// not very important to free the solver, it usually doesn't
+// take up any memory
+int mpb_free_solver(void *solver) {
+
+    mpb_release_object(solver);
+    return 0;
+}
+
+int mpb_new_model(void *solver, void **output) {
+
+    jl_value_t * model = jl_call1(mpb_get_function("ConicModel"), solver);
+    JL_GC_PUSH1(&model);
+    mpb_register_object(model);
+    JL_GC_POP();
+
+    *output = model;
+
+    return 0;
+}
+
+int mpb_free_model(void *model) {
+
+    mpb_release_object(model);
+    return 0;
+}
+
+// julia cleanup:
+// ensures a clean shutdown, solvers properly released
+// use exitcode = 0 for normal case
+void mpb_atexit(int exitcode) {
+    jl_atexit_hook(exitcode);
 }
 
 #define MPBGetIntProperty(prop) \
@@ -177,7 +254,6 @@ MPBGetFloatProperty(getobjbound);
 MPBGetFloatProperty(getobjgap);
 MPBGetFloatProperty(getsolvetime);
 
-void jl_(jl_value_t*); // for debugging
 
 int mpb_loadproblem(void *model, // model pointer
                     int64_t numvar, // number of variables

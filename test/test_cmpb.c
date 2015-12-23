@@ -1,7 +1,7 @@
 #include <cmpb.h>
-#include <julia.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <math.h>
 
@@ -24,24 +24,16 @@ const int64_t varconeindices1[] = { 0, 1, 2 };
 const int64_t* varconeindices[] = { varconeindices1 };
 const int64_t varconelengths[] = { 3 };
 
-void jl_(jl_value_t*);
-
 int main(int argc, char *argv[])
 {
     int i;
     /* required: setup the julia context */
     mpb_initialize();
 
-    jl_eval_string("println(sqrt(2.0))");
-    assert(!jl_exception_occurred());
-    
-    jl_eval_string("import ECOS");
-    assert(!jl_exception_occurred());
-
-    jl_value_t *model = NULL;
-    JL_GC_PUSH1(&model);
-    model = jl_eval_string("MathProgBase.ConicModel(ECOS.ECOSSolver())");
-    assert(!jl_exception_occurred());
+    void *solver;
+    mpb_new_solver("ECOS","ECOSSolver()", &solver);
+    void *model;
+    mpb_new_model(solver, &model);
 
     int ret = mpb_loadproblem(model, nvar, nconstr, c, I, J, V, nnz, b,
                               numconstrcones, constrconetypes, constrconeindices, constrconelengths,
@@ -63,14 +55,9 @@ int main(int argc, char *argv[])
     assert(fabs(sol[1]-0.0) < 1e-3);
     assert(fabs(sol[2]-2.0) < 1e-3);
 
-    JL_GC_POP();
+    mpb_free_model(model);
+    mpb_free_solver(solver);
 
-
-    /* strongly recommended: notify julia that the
-         program is about to terminate. this allows
-         julia time to cleanup pending write requests
-         and run all finalizers
-    */
-    jl_atexit_hook(0);
+    mpb_atexit(0);
     return 0;
 }
