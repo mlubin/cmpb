@@ -12,6 +12,7 @@ before_install:
     - julia -e 'versioninfo()'
     - julia -e 'Pkg.add("ECOS")'
     - julia -e 'import MathProgBase; import ECOS'
+    - ldd -r libcmpb.so
 script:
     - make test_cmpb
     - ./test_cmpb
