@@ -1,29 +1,25 @@
 language: c
+os:
+    - linux
+    - osx
 compiler:
     - gcc
-#    - clang
+    - clang
 notifications:
     email: false
 sudo: false
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - gcc-4.8
-    - g++-4.8
 before_install:
-    - export CC=gcc-4.8
-    - export CXX=g++-4.8
     - mkdir -p ~/julia
-    - curl -s -L --retry 7 https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.2-linux-x86_64.tar.gz | tar -C ~/julia -x -z --strip-components=1 -f -
+    - if [ `uname` = "Linux" ]; then
+      curl -s -L --retry 7 https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.2-linux-x86_64.tar.gz | tar -C ~/julia -x -z --strip-components=1 -f -;
+      else
+      curl -s -L -o julia.dmg https://s3.amazonaws.com/julialang/bin/osx/x64/0.4/julia-0.4.2-osx10.7+.dmg; hdiutil mount -readonly julia.dmg; cp -a /Volumes/Julia/*.app/Contents/Resources/julia ~/;
+      fi
     - export PATH="${PATH}:${HOME}/julia/bin"
     - julia -e 'versioninfo()'
     - julia -e 'Pkg.add("ECOS")'
     - julia -e 'import MathProgBase; import ECOS'
-    - ldd -r /home/travis/julia/lib/julia/libjulia.so
 script:
     - make
-    - ldd -r libcmpb.so
     - make test_cmpb
     - ./test_cmpb
