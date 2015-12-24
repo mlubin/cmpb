@@ -5,13 +5,20 @@ LDFLAGS  += $(shell $(JL_SHARE)/julia-config.jl --ldflags)
 LDLIBS   += $(shell $(JL_SHARE)/julia-config.jl --ldlibs)
 
 DEPS = include/cmpb.h
+OS := $(shell uname)
 
-all: libcmpb.so
+ifeq ($(OS),Darwin)
+	LIBCMPB := libcmpb.dylib
+else
+	LIBCMPB := libcmpb.so
+endif
+
+all: $(LIBCMPB)
 
 src/cmpb.o: src/cmpb.c
 	$(CC) -c ${CFLAGS} -o $@ $^
 
-libcmpb.so: src/cmpb.o
+$(LIBCMPB): src/cmpb.o
 	$(CC) ${LDFLAGS} -shared -o $@ $^ ${LDLIBS}
 
 test/test_cmpb.o: test/test_cmpb.c
@@ -21,4 +28,4 @@ test_cmpb: test/test_cmpb.o libcmpb.so
 	$(CC) ${LDFLAGS} test/test_cmpb.o src/cmpb.o ${LDLIBS} -o $@
 
 clean:
-	rm -f libcmpb.so src/cmpb.o test_cmpb test/test_cmpb.o
+	rm -f $(LIBCMPB) src/cmpb.o test_cmpb test/test_cmpb.o
