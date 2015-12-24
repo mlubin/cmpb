@@ -24,7 +24,7 @@ $(LIBCMPB): src/cmpb.o
 test/test_cmpb.o: test/test_cmpb.c
 	$(CC) -c ${CFLAGS} -o $@ test/test_cmpb.c
 
-test_cmpb: test/test_cmpb.o libcmpb.so
+test_cmpb: test/test_cmpb.o $(LIBCMPB)
 	$(CC) ${LDFLAGS} test/test_cmpb.o src/cmpb.o ${LDLIBS} -o $@
 
 clean:
