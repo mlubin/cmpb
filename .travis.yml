@@ -10,7 +10,11 @@ notifications:
 sudo: false
 before_install:
     - mkdir -p ~/julia
-    - if [ `uname` -eq "Linux" ]; then; curl -s -L --retry 7 https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.2-linux-x86_64.tar.gz | tar -C ~/julia -x -z --strip-components=1 -f -; else; curl -s -L --retry 7 https://s3.amazonaws.com/julialang/bin/osx/x64/0.4/julia-0.4.2-osx10.7+.dmg; hdiutil mount -readonly julia.dmg; cp -a /Volumes/Julia/*.app/Contents/Resources/julia ~/; fi
+    - if [ `uname` -eq "Linux" ]; then
+      curl -s -L --retry 7 https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.2-linux-x86_64.tar.gz | tar -C ~/julia -x -z --strip-components=1 -f -;
+      else
+      curl -s -L --retry 7 https://s3.amazonaws.com/julialang/bin/osx/x64/0.4/julia-0.4.2-osx10.7+.dmg; hdiutil mount -readonly julia.dmg; cp -a /Volumes/Julia/*.app/Contents/Resources/julia ~/;
+      fi
     - export PATH="${PATH}:${HOME}/julia/bin"
     - julia -e 'versioninfo()'
     - julia -e 'Pkg.add("ECOS")'
