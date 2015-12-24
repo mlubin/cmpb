@@ -5,16 +5,7 @@ compiler:
 notifications:
     email: false
 sudo: false
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - gcc-4.8
-    - g++-4.8
 before_install:
-    - export CC=gcc-4.8
-    - export CXX=g++-4.8
     - mkdir -p ~/julia
     - curl -s -L --retry 7 https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.2-linux-x86_64.tar.gz | tar -C ~/julia -x -z --strip-components=1 -f -
     - export PATH="${PATH}:${HOME}/julia/bin"
