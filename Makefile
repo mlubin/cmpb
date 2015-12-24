@@ -25,7 +25,7 @@ test/test_cmpb.o: test/test_cmpb.c
 	$(CC) -c ${CFLAGS} -o $@ test/test_cmpb.c
 
 test_cmpb: test/test_cmpb.o libcmpb.so
-	$(CC) ${LDFLAGS} test/test_cmpb.o src/cmpb.o ${LDLIBS} -o $@
+	$(CC) test/test_cmpb.o -Wl,-rpath,$(shell pwd) $(LIBCMPB) -o $@
 
 clean:
 	rm -f $(LIBCMPB) src/cmpb.o test_cmpb test/test_cmpb.o
