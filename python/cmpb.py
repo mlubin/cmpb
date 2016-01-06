@@ -1,6 +1,6 @@
 from ctypes import CDLL, POINTER, c_char, c_char_p, c_int, c_int64, \
     c_double, c_void_p, byref
-from numpy import int64, float64, ndarray, void
+from numpy import int64, float64, ndarray, array, void, hstack
 from os import uname, path
 from site import getsitepackages
 from scipy.sparse import coo_matrix
@@ -80,8 +80,8 @@ lib.mpb_free_model.argtypes = [c_void_p]
 lib.mpb_atexit.argtypes = [c_int]
 lib.mpb_loadproblem.argtypes = [c_void_p, c_int64, c_int64, c_double_p,
     c_int64_p, c_int64_p, c_double_p, c_int64, c_double_p,
-    c_int64, c_int64_p, POINTER(c_int64_p), c_int64_p,
-    c_int64, c_int64_p, POINTER(c_int64_p), c_int64_p]
+    c_int64, c_int64_p, c_int64_p, c_int64_p,
+    c_int64, c_int64_p, c_int64_p, c_int64_p]
 lib.mpb_getsolution.argtypes = [c_void_p, c_double_p]
 lib.mpb_getdual.argtypes = [c_void_p, c_double_p]
 lib.mpb_status.argtypes = [c_void_p, c_char_p, c_int64]
@@ -98,7 +98,7 @@ lib.mpb_new_solver.restype = c_int
 lib.mpb_free_solver.restype = c_int
 lib.mpb_new_model.restype = c_int
 lib.mpb_free_model.restype = c_int
-lib.mpb_atexit = None
+lib.mpb_atexit.restype = None
 lib.mpb_loadproblem.restype = c_int
 lib.mpb_getsolution.restype = c_int
 lib.mpb_getdual.restype = c_int
@@ -134,20 +134,14 @@ MPBCones constructor
 @param index_lists: list of lists of indices in each cone
 '''
 class MPBCones(object):
-    def __init__(self, types, index_lists):
+    def __init__(self, types, lengths, indices):
         self.num = len(types)
-        self.types = int64(ndarray(types))
-        self.index_lists = [int64(ndarray(index_list)) for index_list in index_lists]
-        self.indices = ndarray(len(index_lists, c_int64_p))
-
-        for (i, ilist) in enumerate(self.index_lists):
-            self.indices[i] = ndarray_pointer(ilist)
-
-        lengths = [len(index_list) for index_list in index_lists]
-        self.lengths = int64(ndarray(lengths))
+        self.types = array(types).astype(int64)
+        self.indices = array(indices).astype(int64)
+        self.lengths = array(lengths).astype(int64)
 
         self.type_ptr = ndarray_pointer(self.types)
-        self.index_ptr = narray_pointer(self.indices)
+        self.index_ptr = ndarray_pointer(self.indices)
         self.length_ptr = ndarray_pointer(self.lengths)
 
 '''
@@ -155,14 +149,14 @@ wrapper for MathProgBase solver
 '''
 class MPBSolver(object):
     def __init__(self, packagename, solvername):
-        self.c = c_void_p()
+        self.ptr = c_void_p()
         MPB_CHECKERR( lib.mpb_new_solver(
-            packagename, solvername, byref(self.c)) )
+            packagename, solvername, byref(self.ptr)) )
 
     # automatically release solver when no
     # references to MPBSolver object remain
     def __del__(self):
-        MPB_CHECKERR( lib.mpb_free_solver(self.c) )
+        MPB_CHECKERR( lib.mpb_free_solver(self.ptr) )
 
 '''
 wrapper for MathProgBase model
@@ -217,22 +211,25 @@ class MPBModel(object):
         self.solver = MPBSolver(packagename, solvername)
 
         # initialize MathProgBase model
-        self.c = c_void_p()
-        MPB_CHECKERR( lib.mpb_new_model(self.solver.c, self.c) )
+        self.ptr = c_void_p()
+        MPB_CHECKERR( lib.mpb_new_model(self.solver.ptr, self.ptr) )
 
         # load problem data into MathProgBase model
         self.numvar = A.shape[1]
         self.numconstr = A.shape[0]
 
-        row_ptr = ndarray_pointer(int64(A.row))
-        col_ptr = ndarray_pointer(int64(A.col))
-        data_ptr = ndarray_pointer(float64(A.data))
-        b_ptr = ndarray_pointer(float64(b))
-        c_ptr = ndarray_pointer(float64(c))
+        row_arr = A.row.astype(int64)
+        col_arr = A.col.astype(int64)
+        data_arr = A.data.astype(float64)
+        b_arr = b.astype(float64)
+        c_arr = c.astype(float64)
 
-        MPB_CHECKERR( lib.mpb_loadproblem(
-            self.numvar, self.numconstr, c_ptr,
-            row_ptr, col_ptr, data_ptr, A.nnz, b_ptr,
+        # import pdb; pdb.set_trace()
+
+        MPB_CHECKERR( lib.mpb_loadproblem(self.ptr,
+            self.numvar, self.numconstr, ndarray_pointer(c_arr),
+            ndarray_pointer(row_arr), ndarray_pointer(col_arr),
+            ndarray_pointer(data_arr), A.nnz, ndarray_pointer(b_arr),
             constrcones.num, constrcones.type_ptr,
             constrcones.index_ptr, constrcones.length_ptr,
             varcones.num, varcones.type_ptr,
@@ -248,47 +245,47 @@ class MPBModel(object):
     '''
     def getproperty(self, property_name):
         if property_name == "numvar":
-            call = lib.mpb_numvar
+            call = lib.mpb_getnumvar
             dtype = int64
         elif property_name == "numconstr":
-            call = lib.mpb_numconstr
+            call = lib.mpb_getnumconstr
             dtype = int64
         elif property_name == "objval":
-            call = lib.mpb_objval
+            call = lib.mpb_getobjval
             dtype = float64
         elif property_name == "objbound":
-            call = lib.mpb_objbound
+            call = lib.mpb_getobjbound
             dtype = float64
         elif property_name == "pbjgap":
-            call = lib.mpb_objgap
+            call = lib.mpb_getobjgap
             dtype = float64
         elif property_name == "solvetime":
-            call = lib.mpb_solvetime
+            call = lib.mpb_getsolvetime
             dtype = float64
         else:
             print "invalid property key"
 
         prop = ndarray(1, dtype=dtype)
-        MPB_CHECKERR( call(self.c, ndarray_pointer(prop)) )
+        MPB_CHECKERR( call(self.ptr, ndarray_pointer(prop)) )
         return prop[0]
 
     def getsolution(self):
-        MPB_CHECKERR( lib.mpb_getsolution(self.c,
+        MPB_CHECKERR( lib.mpb_getsolution(self.ptr,
             ndarray_pointer(self.solution)) )
         return self.solution
 
     def getdual(self):
-        MPB_CHECKERR( lib.mpb_getsolution(self.c,
+        MPB_CHECKERR( lib.mpb_getsolution(self.ptr,
             ndarray_pointer(self.dual)) )
         return self.dual
 
     def optimize(self):
-        MPB_CHECKERR( lib.mpb_optimize(self.c) )
+        MPB_CHECKERR( lib.mpb_optimize(self.ptr) )
 
     def status(self):
         len_buffer = STATUS_BUFFER_LENGTH
-        status_buffer = ndarray(len_buffer, dtype = c_char_p)
-        MPB_CHECKERR( lib.mpb_status(self.c,
+        status_buffer = ndarray(len_buffer, dtype = c_char)
+        MPB_CHECKERR( lib.mpb_status(self.ptr,
             ndarray_pointer(status_buffer), len_buffer) )
         return reduce(op_add, status_buffer)
 
@@ -297,11 +294,6 @@ class MPBModel(object):
     # references to MPBModel object remain & exit MPB environment
     def __del__(self):
         del self.solver
-        MPB_CHECKERR( lib.mpb_free_model(self.c) )
+        MPB_CHECKERR( lib.mpb_free_model(self.ptr) )
         MPB_exit()
-
-
-
-
-
 

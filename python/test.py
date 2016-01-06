@@ -8,36 +8,34 @@ from operator import add as op_add
 c_int64_p = POINTER(c_int64)
 c_double_p = POINTER(c_double)
 
-# ----------------- problem data --------------------
-nvar = 3
-nconstr = 2
-nnz = 5
-
-c = np.float64(np.array([-3, -2, -4]))
-b = np.float64(np.array([3, 2]))
-
-
-I = np.array([0,0,1,0,1]).astype(np.int64)
-J = np.array([0,1,1,2,2]).astype(np.int64)
-V = np.array([1.0,1.0,1.0,1.0,1.0]).astype(np.float64)
-
-
-numconstrcones = 1;
-constrconetypes = np.array([ MPBZEROCONE ]).astype(np.int64)
-constrconeindices1 = np.array([ 0, 1 ]).astype(np.int64)
-constrconeindices =  [ constrconeindices1 ]
-constrconelengths = np.array([ 2 ]).astype(np.int64)
-
-numvarcones = 1
-varconetypes = np.array([ MPBNONNEGCONE ]).astype(np.int64)
-varconeindices1 = np.array([ 0, 1, 2 ]).astype(np.int64)
-varconeindices = [ varconeindices1 ]
-varconelengths = np.array([ 3 ]).astype(np.int64)
-# ---------------------------------------------------
-
-
-
 def low_level():
+    # ----------------- problem data --------------------
+    nvar = 3
+    nconstr = 2
+    nnz = 5
+
+    c = np.float64(np.array([-3, -2, -4]))
+    b = np.float64(np.array([3, 2]))
+
+
+    I = np.array([0,0,1,0,1]).astype(np.int64)
+    J = np.array([0,1,1,2,2]).astype(np.int64)
+    V = np.array([1.0,1.0,1.0,1.0,1.0]).astype(np.float64)
+
+
+    numconstrcones = 1;
+    constrconetypes = np.array([ MPBZEROCONE ]).astype(np.int64)
+    constrconeindices = np.array([ 0, 1 ]).astype(np.int64)
+    # constrconeindices =  [ constrconeindices1 ]
+    constrconelengths = np.array([ 2 ]).astype(np.int64)
+
+    numvarcones = 1
+    varconetypes = np.array([ MPBNONNEGCONE ]).astype(np.int64)
+    varconeindices = np.array([ 0, 1, 2 ]).astype(np.int64)
+    # varconeindices = [ varconeindices1 ]
+    varconelengths = np.array([ 3 ]).astype(np.int64)
+    # ---------------------------------------------------
+
     # required: setup the julia context
     lib.mpb_initialize();
 
@@ -47,24 +45,6 @@ def low_level():
     lib.mpb_new_solver("ECOS","ECOSSolver()", byref(solver))
     lib.mpb_new_model(solver, byref(model))
 
-    constr_idx_arr = np.zeros(numconstrcones, dtype=c_int64_p)
-    for i, idx_list in enumerate(constrconeindices):
-        tmp = idx_list.ctypes.data
-        constr_idx_arr[i] = tmp
-        print tmp
-        print constr_idx_arr.shape
-        # import pdb; pdb.set_trace()
-        # constr_idx_arr[i] = ndarray_pointer(np.array(idx_list).astype(np.int64))
-    constrconeindices_ptr = constr_idx_arr.ctypes.data_as(c_int64_pp)
-
-    var_idx_arr = np.zeros(numvarcones, dtype=c_int64_p)
-    for i, idx_list in enumerate(varconeindices):
-        var_idx_arr[i] = idx_list.ctypes.data
-    varconeindices_ptr = var_idx_arr.ctypes.data_as(c_int64_pp)
-
-    # I_arr = np.array(I).astype(np.int64)
-    # J_arr = np.array(J).astype(np.int64)
-    # V_arr = np.array(V).astype(np.float64)
     err = lib.mpb_loadproblem(model, nvar, nconstr,
     	ndarray_pointer(c),
     	ndarray_pointer(I),
@@ -73,18 +53,18 @@ def low_level():
     	nnz, ndarray_pointer(b),
         numconstrcones,
         ndarray_pointer(constrconetypes),
-        constrconeindices_ptr,
+        ndarray_pointer(constrconeindices),
         ndarray_pointer(constrconelengths),
         numvarcones,
         ndarray_pointer(varconetypes),
-        varconeindices_ptr,
+        ndarray_pointer(varconeindices),
         ndarray_pointer(varconelengths));
 
-    assert err != 0
+    assert err == 0
 
     err = lib.mpb_optimize(model);
 
-    assert err != 0
+    assert err == 0
 
     status = np.ndarray(20, c_char)
     ret = lib.mpb_status(model, status.ctypes.data_as(c_char_p), 20);
@@ -108,15 +88,41 @@ def low_level():
     return 0
 
 def high_level():
-    constrcones = MPBCones(constrconetypes, constrconeindices)
-    varcones = MPBCone(varconetypes, varconeindices)
+    # ----------------- problem data --------------------
+    nvar = 3
+    nconstr = 2
+    nnz = 5
+
+    c = np.array([-3, -2, -4])
+    b = np.array([3, 2])
+
+
+    I = [0,0,1,0,1]
+    J = [0,1,1,2,2]
+    V = [1.0,1.0,1.0,1.0,1.0]
+
+
+    numconstrcones = 1;
+    constrconetypes = [ MPBZEROCONE ]
+    constrconeindices = [ 0, 1 ]
+    # constrconeindices =  [ constrconeindices1 ]
+    constrconelengths = [ 2 ]
+
+    numvarcones = 1
+    varconetypes = [ MPBNONNEGCONE ]
+    varconeindices = [ 0, 1, 2 ]
+    # varconeindices = [ varconeindices1 ]
+    varconelengths = [ 3 ]
+    # ---------------------------------------------------
+    constrcones = MPBCones(constrconetypes, constrconelengths, constrconeindices)
+    varcones = MPBCones(varconetypes, varconelengths, varconeindices)
     A = coo_matrix((V, (I, J)), shape=(nconstr, nvar))
 
     problem = MPBModel("ECOS", "ECOSSolver()", c, A, b,
     constrcones, varcones)
     problem.optimize()
     print problem.status()
-    assert abs(problem.get("objval") - (-11)) < 1e-3
+    assert abs(problem.getproperty("objval") - (-11)) < 1e-3
 
     sol = problem.getsolution()
     assert abs(sol[0]-1.0) < 1e-3

@@ -115,20 +115,22 @@ jl_value_t* int_to_symbol(int64_t val) {
 
 // MUST GC_PUSH the returned value
 // Generates a vector with a list of cones, to be used as input for loadproblem!
-jl_value_t* mpb_conevector(int64_t numcones, const int64_t *conetypes, const int64_t **coneindices, const int64_t *conelengths) {
+jl_value_t* mpb_conevector(int64_t numcones, const int64_t *conetypes, const int64_t *coneindices, const int64_t *conelengths) {
 
     jl_value_t *conevector = NULL, *indexvector = NULL, *conesymbol = NULL, *conetuple = NULL;
     JL_GC_PUSH4(&conevector, &indexvector, &conesymbol, &conetuple);
     conevector = jl_eval_string("Array(Tuple{Symbol,Any},0)");
     jl_function_t *push_f = jl_get_function(jl_base_module, "push!");
     int i;
+    int offset = 0;
     for (i = 0; i < numcones; i++) {
         conesymbol = int_to_symbol(conetypes[i]);
-        indexvector = mpb_ptr_to_intvec(coneindices[i], conelengths[i]);
+        indexvector = mpb_ptr_to_intvec(coneindices + offset, conelengths[i]);
         conetuple = jl_new_struct(jl_eval_string("Tuple{Symbol,Vector{Int64}}"), conesymbol, indexvector);
         assert(!jl_exception_occurred());
         jl_call2(push_f, conevector, conetuple);
         assert(!jl_exception_occurred());
+        offset = offset + conelengths[i];
     }
 
     JL_GC_POP();
@@ -269,14 +271,13 @@ int mpb_loadproblem(void *model, // model pointer
                     const double *b, // right-hand side vector
                     int64_t numconstrcones, // number of constraint cones
                     const int64_t *constrconetypes, // types of each constraint cone
-                    const int64_t **constrconeindices, // vector of indices for each constraint cone
+                    const int64_t *constrconeindices, // vector of indices for each constraint cone
                     const int64_t *constrconelengths, // number of indices in each constraint cone
                     int64_t numvarcones, // number of variable cones
                     const int64_t *varconetypes, // types of each variable cone
-                    const int64_t **varconeindices, // vector of indices for each variable cone
+                    const int64_t *varconeindices, // vector of indices for each variable cone
                     const int64_t *varconelengths // number of indices in each variable cone
                     ) {
-
     jl_value_t *cvec = NULL, *Amat = NULL, *bvec = NULL, *constr_cones = NULL,
                *var_cones = NULL;
     JL_GC_PUSH5(&cvec, &Amat, &bvec, &constr_cones, &var_cones);
@@ -293,8 +294,6 @@ int mpb_loadproblem(void *model, // model pointer
     jl_value_t *loadargs[] = { (jl_value_t*)model, cvec, Amat, bvec, constr_cones, var_cones };
 
     jl_call(loadproblem_f, loadargs, 6);
-    printf("varconeindices %u\n", varconeindices[0][1]);
-    jl_(jl_exception_occurred());
     assert(!jl_exception_occurred());
 
     JL_GC_POP();

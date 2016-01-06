@@ -43,11 +43,11 @@ int mpb_loadproblem(void *model, // model pointer
                     const double *b, // right-hand side vector
                     int64_t numconstrcones, // number of constraint cones
                     const int64_t *constrconetypes, // types of each constraint cone
-                    const int64_t **constrconeindices, // vector of indices for each constraint cone
+                    const int64_t *constrconeindices, // vector of indices for each constraint cone
                     const int64_t *constrconelengths, // number of indices in each constraint cone
                     int64_t numvarcones, // number of variable cones
                     const int64_t *varconetypes, // types of each variable cone
-                    const int64_t **varconeindices, // vector of indices for each variable cone
+                    const int64_t *varconeindices, // vector of indices for each variable cone
                     const int64_t *varconelengths // number of indices in each variable cone
                     );
 
