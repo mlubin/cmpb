@@ -47,28 +47,30 @@ def low_level():
     lib.mpb_new_solver("ECOS","ECOSSolver()", byref(solver))
     lib.mpb_new_model(solver, byref(model))
 
-    contr_idx = np.int64(np.array(constrconeindices))
-    constr_idx_arr = np.ndarray(1, dtype=c_int64_p)
-    constrconeindices_ptr = constr_idx_arr.ctypes.data_as(POINTER(c_int64_p))
+    constr_idx_arr = np.zeros(numconstrcones, dtype=c_int64_p)
+    for i, idx_list in enumerate(constrconeindices):
+        constr_idx_arr[i] = ndarray_pointer(np.array(idx_list).astype(np.int64))
+    constrconeindices_ptr = ndarray_pointer(constr_idx_arr)
 
-    var_idx = np.int64(np.array(varconeindices))
-    var_idx_arr = np.ndarray(1, dtype=c_int64_p)
-    varconeindices_ptr = var_idx_arr.ctypes.data_as(POINTER(c_int64_p))
+    var_idx_arr = np.zeros(numvarcones, dtype=c_int64_p)
+    for i, idx_list in enumerate(varconeindices):
+        var_idx_arr[i] = ndarray_pointer(np.array(idx_list).astype(np.int64))
+    varconeindices_ptr = ndarray_pointer(var_idx_arr)
 
 
     err = lib.mpb_loadproblem(model, nvar, nconstr,
-    ndarray_pointer(c),
-    ndarray_pointer(np.array(I).astype(np.int64)),
-    ndarray_pointer(np.array(J).astype(np.int64)),
-    ndarray_pointer(np.array(V).astype(np.float64)),
-    nnz, ndarray_pointer(b),
+    	ndarray_pointer(c),
+    	ndarray_pointer(np.array(I).astype(np.int64)),
+    	ndarray_pointer(np.array(J).astype(np.int64)),
+    	ndarray_pointer(np.array(V).astype(np.float64)),
+    	nnz, ndarray_pointer(b),
         numconstrcones,
         ndarray_pointer(np.array(constrconetypes).astype(np.int64)),
-        constrconeindices_ptr,
+        ndarray_pointer(constr_idx_arr),
         ndarray_pointer(np.array(constrconelengths).astype(np.int64)),
         numvarcones,
         ndarray_pointer(np.array(varconetypes).astype(np.int64)),
-        varconeindices_ptr,
+        ndarray_pointer(var_idx_arr),
         ndarray_pointer(np.array(varconelengths).astype(np.int64)));
 
     assert err != 0

@@ -8,18 +8,25 @@ from operator import add as op_add
 
 # int64_t *, double * pointers
 c_int64_p = POINTER(c_int64)
+c_int64_pp = POINTER(c_int64)
 c_double_p = POINTER(c_double)
 
-# np.ndarray --> c pointer (int64_t * OR double * OR exception)
+# np.ndarray --> c pointer
+# valid types: char *, int64_t *, int64_t **, double *, OR exception)
 def ndarray_pointer(array):
     if not isinstance(array, ndarray):
         TypeError("input must be a numpy ndarray")
-    if not array.dtype in (int64, float64):
+    if not array.dtype in (int64, float64, c_char, c_int64_p):
         AttributeError("input array must have int64 or float64 elements")
     if array.dtype == int64:
         return array.ctypes.data_as(c_int64_p)
+    elif array.dtype == c_int64_p:
+        return array.ctypes.data_as(c_int64_pp)
+    elif array.dtype == c_char:
+        return array.ctypes.data_as(c_char_p)
     else:
         return array.ctypes.data_as(c_double_p)
+
 
 # ------------- #
 # MPB constants #
@@ -135,14 +142,14 @@ class MPBCones(object):
         self.index_lists = [int64(ndarray(index_list)) for index_list in index_lists]
         self.indices = ndarray(len(index_lists, c_int64_p))
 
-        for i in xrange(len(self.index_lists)):
-            self.indices[i] = ndarray_pointer(self.index_lists[i])
+        for (i, ilist) in enumerate(self.index_lists):
+            self.indices[i] = ndarray_pointer(ilist)
 
         lengths = [len(index_list) for index_list in index_lists]
         self.lengths = int64(ndarray(lengths))
 
         self.type_ptr = ndarray_pointer(self.types)
-        self.index_ptr = self.indices.ctypes.data_as(POINTER(c_int64_p))
+        self.index_ptr = narray_pointer(self.indices)
         self.length_ptr = ndarray_pointer(self.lengths)
 
 '''
@@ -163,7 +170,6 @@ class MPBSolver(object):
 wrapper for MathProgBase model
 '''
 class MPBModel(object):
-
     '''
     MathProgBase model constructor
 
@@ -284,8 +290,8 @@ class MPBModel(object):
     def status(self):
         len_buffer = STATUS_BUFFER_LENGTH
         status_buffer = ndarray(len_buffer, dtype = c_char_p)
-        buffer_ptr = status_buffer.ctypes.data_as(c_char_p)
-        MPB_CHECKERR( lib.mpb_status(self.c, buffer_ptr, len_buffer) )
+        MPB_CHECKERR( lib.mpb_status(self.c,
+            ndarray_pointer(status_buffer), len_buffer) )
         return reduce(op_add, status_buffer)
 
 

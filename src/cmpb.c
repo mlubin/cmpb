@@ -124,7 +124,7 @@ jl_value_t* mpb_conevector(int64_t numcones, const int64_t *conetypes, const int
         indexvector = mpb_ptr_to_intvec(coneindices[i], conelengths[i]);
         conetuple = jl_new_struct(jl_eval_string("Tuple{Symbol,Vector{Int64}}"), conesymbol, indexvector);
         assert(!jl_exception_occurred());
-        jl_call2(push_f, conevector, conetuple); 
+        jl_call2(push_f, conevector, conetuple);
         assert(!jl_exception_occurred());
     }
 
