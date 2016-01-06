@@ -1,0 +1,17 @@
+- name: SCS
+  packagename: "SCS"
+  solvername: "SCSSolver()"
+  cones:
+   linear: Yes
+   SOC: Yes
+   SDP: Yes
+   exponential: No
+
+- name: ECOS
+  packagename: "ECOS"
+  solvername: "ECOSSolver()"
+  cones:
+   linear: Yes
+   SOC: Yes
+   SDP: Yes
+   exponential: No
