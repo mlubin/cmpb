@@ -27,10 +27,13 @@ class CMPB_Build(build):
 
     self.execute(compile, [], message)
 
+    # set target files to Make output
+    # target_files = CPU_LIBS
+
     # copy Make output to library build folder
     self.mkpath(self.build_lib)
-    for target in target_files:
-          self.copy_file(path.join(BASEPATH,"libcmpb" + EXT), self.build_lib)
+    # for target in target_files:
+    self.copy_file(path.join(BASEPATH,"libcmpb" + EXT), self.build_lib)
 
 
 class CMPB_Install(install):
@@ -56,7 +59,7 @@ setup(
     author_email='mlubin@mit.edu',
     url='https://github.com/mlubin/cmpb',
     package_dir={'optkit': 'optkit'},
-    packages=['cmpb'],
+    py_modules=['cmpb'],
     license='TODO: LICENSE',
     zip_safe=False,
     description='TODO: SHORT DESCRIPTION',
