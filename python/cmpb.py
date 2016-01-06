@@ -12,16 +12,14 @@ c_int64_pp = POINTER(c_int64)
 c_double_p = POINTER(c_double)
 
 # np.ndarray --> c pointer
-# valid types: char *, int64_t *, int64_t **, double *, OR exception)
+# valid types: char *, int64_t *, double *, OR exception)
 def ndarray_pointer(array):
     if not isinstance(array, ndarray):
         TypeError("input must be a numpy ndarray")
-    if not array.dtype in (int64, float64, c_char, c_int64_p):
+    if not array.dtype in (int64, float64, c_char):
         AttributeError("input array must have int64 or float64 elements")
     if array.dtype == int64:
         return array.ctypes.data_as(c_int64_p)
-    elif array.dtype == c_int64_p:
-        return array.ctypes.data_as(c_int64_pp)
     elif array.dtype == c_char:
         return array.ctypes.data_as(c_char_p)
     else:

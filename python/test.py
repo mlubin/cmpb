@@ -17,22 +17,22 @@ c = np.float64(np.array([-3, -2, -4]))
 b = np.float64(np.array([3, 2]))
 
 
-I = [0,0,1,0,1]
-J = [0,1,1,2,2]
-V = [1.0,1.0,1.0,1.0,1.0]
+I = np.array([0,0,1,0,1]).astype(np.int64)
+J = np.array([0,1,1,2,2]).astype(np.int64)
+V = np.array([1.0,1.0,1.0,1.0,1.0]).astype(np.float64)
 
 
 numconstrcones = 1;
-constrconetypes = [ MPBZEROCONE ]
-constrconeindices1 = [ 0, 1 ]
+constrconetypes = np.array([ MPBZEROCONE ]).astype(np.int64)
+constrconeindices1 = np.array([ 0, 1 ]).astype(np.int64)
 constrconeindices =  [ constrconeindices1 ]
-constrconelengths = [ 2 ]
+constrconelengths = np.array([ 2 ]).astype(np.int64)
 
 numvarcones = 1
-varconetypes = [ MPBNONNEGCONE ]
-varconeindices1 = [ 0, 1, 2 ]
+varconetypes = np.array([ MPBNONNEGCONE ]).astype(np.int64)
+varconeindices1 = np.array([ 0, 1, 2 ]).astype(np.int64)
 varconeindices = [ varconeindices1 ]
-varconelengths = [ 3 ]
+varconelengths = np.array([ 3 ]).astype(np.int64)
 # ---------------------------------------------------
 
 
@@ -49,29 +49,36 @@ def low_level():
 
     constr_idx_arr = np.zeros(numconstrcones, dtype=c_int64_p)
     for i, idx_list in enumerate(constrconeindices):
-        constr_idx_arr[i] = ndarray_pointer(np.array(idx_list).astype(np.int64))
-    constrconeindices_ptr = ndarray_pointer(constr_idx_arr)
+        tmp = idx_list.ctypes.data
+        constr_idx_arr[i] = tmp
+        print tmp
+        print constr_idx_arr.shape
+        # import pdb; pdb.set_trace()
+        # constr_idx_arr[i] = ndarray_pointer(np.array(idx_list).astype(np.int64))
+    constrconeindices_ptr = constr_idx_arr.ctypes.data_as(c_int64_pp)
 
     var_idx_arr = np.zeros(numvarcones, dtype=c_int64_p)
     for i, idx_list in enumerate(varconeindices):
-        var_idx_arr[i] = ndarray_pointer(np.array(idx_list).astype(np.int64))
-    varconeindices_ptr = ndarray_pointer(var_idx_arr)
+        var_idx_arr[i] = idx_list.ctypes.data
+    varconeindices_ptr = var_idx_arr.ctypes.data_as(c_int64_pp)
 
-
+    # I_arr = np.array(I).astype(np.int64)
+    # J_arr = np.array(J).astype(np.int64)
+    # V_arr = np.array(V).astype(np.float64)
     err = lib.mpb_loadproblem(model, nvar, nconstr,
     	ndarray_pointer(c),
-    	ndarray_pointer(np.array(I).astype(np.int64)),
-    	ndarray_pointer(np.array(J).astype(np.int64)),
-    	ndarray_pointer(np.array(V).astype(np.float64)),
+    	ndarray_pointer(I),
+    	ndarray_pointer(J),
+    	ndarray_pointer(V),
     	nnz, ndarray_pointer(b),
         numconstrcones,
-        ndarray_pointer(np.array(constrconetypes).astype(np.int64)),
-        ndarray_pointer(constr_idx_arr),
-        ndarray_pointer(np.array(constrconelengths).astype(np.int64)),
+        ndarray_pointer(constrconetypes),
+        constrconeindices_ptr,
+        ndarray_pointer(constrconelengths),
         numvarcones,
-        ndarray_pointer(np.array(varconetypes).astype(np.int64)),
-        ndarray_pointer(var_idx_arr),
-        ndarray_pointer(np.array(varconelengths).astype(np.int64)));
+        ndarray_pointer(varconetypes),
+        varconeindices_ptr,
+        ndarray_pointer(varconelengths));
 
     assert err != 0
 
@@ -101,7 +108,7 @@ def low_level():
     return 0
 
 def high_level():
-    constrcones = MPBCone(constrconetypes, constrconeindices)
+    constrcones = MPBCones(constrconetypes, constrconeindices)
     varcones = MPBCone(varconetypes, varconeindices)
     A = coo_matrix((V, (I, J)), shape=(nconstr, nvar))
 

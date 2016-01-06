@@ -73,9 +73,12 @@ jl_value_t* mpb_triplet_to_sparse(const int64_t *I, const int64_t *J, const doub
     objects[2] = mpb_ptr_to_floatvec(V,nnz);
     objects[3] = jl_box_int64(m);
     objects[4] = jl_box_int64(n);
+    jl_(objects[0]);
+    jl_(objects[1]);
 
     jl_function_t *sparse_f = jl_get_function(jl_base_module, "sparse");
     jl_value_t *spmat = jl_call(sparse_f, objects, 5);
+    jl_(jl_exception_occurred());
     assert(!jl_exception_occurred());
 
     JL_GC_POP();
@@ -290,6 +293,8 @@ int mpb_loadproblem(void *model, // model pointer
     jl_value_t *loadargs[] = { (jl_value_t*)model, cvec, Amat, bvec, constr_cones, var_cones };
 
     jl_call(loadproblem_f, loadargs, 6);
+    printf("varconeindices %u\n", varconeindices[0][1]);
+    jl_(jl_exception_occurred());
     assert(!jl_exception_occurred());
 
     JL_GC_POP();
