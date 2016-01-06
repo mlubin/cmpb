@@ -47,13 +47,15 @@ def low_level():
     lib.mpb_new_solver("ECOS","ECOSSolver()", byref(solver))
     lib.mpb_new_model(solver, byref(model))
 
-    contr_idx = np.int64(np.array(constrconeindices))
-    constr_idx_arr = np.ndarray(1, dtype=c_int64_p)
-    constrconeindices_ptr = constr_idx_arr.ctypes.data_as(POINTER(c_int64_p))
+    constr_idx_arr = np.zeros(numconstrcones, dtype=c_int64_p)
+    for i, idx_list in enumerate(constrconeindices):
+        constr_idx_arr[i] = ndarray_pointer(np.int64(np.array(idx_list)))     
+    constrconeindices_ptr = ndarray_pointer(constr_idx_arr)
 
-    var_idx = np.int64(np.array(varconeindices))
-    var_idx_arr = np.ndarray(1, dtype=c_int64_p))
-    varconeindices_ptr = var_idx_arr.ctypes.data_as(POINTER(c_int64_p))
+    var_idx_arr = np.zeros(numvarcones, dtype=c_int64_p))
+    for i, idx_list in enumerate(varconeindices):
+        var_idx_arr[i] = ndarray_pointer(np.int64(np.array(idx_list)))     
+    varconeindices_ptr = ndarray_pointer(var_idx_arr)
 
 
     err = lib.mpb_loadproblem(model, nvar, nconstr, 
@@ -64,11 +66,11 @@ def low_level():
     	nnz, ndarray_pointer(b),
         numconstrcones, 
         ndarray_pointer(np.int64(np.array(constrconetypes))), 
-        constrconeindices_ptr, 
+        ndarray_pointer(constr_idx_arr),
         ndarray_pointer(np.int64(np.array(constrconelengths))),
         numvarcones, 
         ndarray_pointer(np.int64(np.array(varconetypes))), 
-        varconeindices_ptr, 
+        ndarray_pointer(var_idx_arr), 
         ndarray_pointer(np.int64(np.array(varconelengths))));
 
     assert err != 0
