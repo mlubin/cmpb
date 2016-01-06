@@ -132,9 +132,3 @@ def high_level():
 if __name__ == "__main__":
     low_level()
     high_level()
-
-
-
-
-
-

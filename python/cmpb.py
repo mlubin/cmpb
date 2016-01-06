@@ -224,8 +224,6 @@ class MPBModel(object):
         b_arr = b.astype(float64)
         c_arr = c.astype(float64)
 
-        # import pdb; pdb.set_trace()
-
         MPB_CHECKERR( lib.mpb_loadproblem(self.ptr,
             self.numvar, self.numconstr, ndarray_pointer(c_arr),
             ndarray_pointer(row_arr), ndarray_pointer(col_arr),
@@ -245,10 +243,10 @@ class MPBModel(object):
     '''
     def getproperty(self, property_name):
         if property_name == "numvar":
-            call = lib.mpb_getnumvar
+            call = lib.mpb_numvar
             dtype = int64
         elif property_name == "numconstr":
-            call = lib.mpb_getnumconstr
+            call = lib.mpb_numconstr
             dtype = int64
         elif property_name == "objval":
             call = lib.mpb_getobjval
