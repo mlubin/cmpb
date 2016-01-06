@@ -5,6 +5,7 @@ from os import uname, path
 from site import getsitepackages
 from scipy.sparse import coo_matrix
 from operator import add as op_add
+from yaml import safe_load 
 
 # int64_t *, double * pointers
 c_int64_p = POINTER(c_int64)
@@ -44,9 +45,10 @@ STATUS_BUFFER_LENGTH = 100
 # ----------------- #
 # find and load lib #
 # ----------------- #
+CMPB_HOME = path.abspath(path.join(path.dirname(__file__), ".."))
 LIBNAME = "libcmpb"
 EXT = ".dylib" if uname()[0] == "Darwin" else ".so" # no Windows support
-localbuild = path.abspath(path.join(path.dirname(__file__), ".."))
+localbuild = CMPB_HOME
 sitepath = getsitepackages()[0]
 
 if path.exists(path.join(sitepath, LIBNAME + EXT)):
@@ -109,6 +111,9 @@ lib.mpb_status.restype = c_int
 # Python bindings #
 # --------------- #
 
+solver_file = open(path.join(CMPB_HOME, "solvers.yml"), 'r')
+MPB_solverlist = safe_load(solver_file)
+solver_file.close()
 
 def MPB_CHECKERR(err):
     if err != 0:
