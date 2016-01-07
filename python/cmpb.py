@@ -87,6 +87,7 @@ lib.mpb_loadproblem.argtypes = [c_void_p, c_int64, c_int64, c_double_p,
 lib.mpb_getsolution.argtypes = [c_void_p, c_double_p]
 lib.mpb_getdual.argtypes = [c_void_p, c_double_p]
 lib.mpb_status.argtypes = [c_void_p, c_char_p, c_int64]
+lib.mpb_checkpackage.argtypes = [c_char_p]
 
 # define return types
 lib.mpb_initialize.restype = c_int
@@ -106,14 +107,23 @@ lib.mpb_getsolution.restype = c_int
 lib.mpb_getdual.restype = c_int
 lib.mpb_optimize.restype = c_int
 lib.mpb_status.restype = c_int
+lib.mpb_checkpackage.restype = c_int
 
 # --------------- #
 # Python bindings #
 # --------------- #
 
+# load solver info
 solver_file = open(path.join(CMPB_HOME, "solvers.yml"), 'r')
-MPB_solverlist = safe_load(solver_file)
+MPB_solvers = safe_load(solver_file)
 solver_file.close()
+
+# check available solvers
+# TODO: fix stub code in C, currently returns 0
+for i, sol in MPB_solvers.iteritems():
+    sol["exists"] = lib.mpb_check_package(sol["packagename"])
+
+
 
 def MPB_CHECKERR(err):
     if err != 0:

@@ -56,5 +56,6 @@ int mpb_getdual(void *model, double *output);
 int mpb_optimize(void *model);
 int mpb_status(void *model, char *output, int64_t len);
 
+int mpb_checkpackage(const char *packagename);
 
 #endif

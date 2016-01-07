@@ -359,3 +359,15 @@ int mpb_status(void *model, char *output, int64_t len) {
 
     return 0;
 }
+
+// STUB: replace this with Julia call to check package
+//  (and load it to ensure precompiled?)
+int mpb_checkpackage(const char *packagename){
+    // int ret = JULIACALL( packagename in keys(Pkg.installed )
+    // if ret
+    //     JULIACALL( import packagename )
+    // return ret
+    return 0;
+}
+
+
