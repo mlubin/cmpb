@@ -5,7 +5,7 @@ from os import uname, path
 from site import getsitepackages
 from scipy.sparse import coo_matrix
 from operator import add as op_add
-from yaml import safe_load 
+from yaml import safe_load
 
 # int64_t *, double * pointers
 c_int64_p = POINTER(c_int64)

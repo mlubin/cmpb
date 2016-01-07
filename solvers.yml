@@ -5,7 +5,9 @@ SCS:
    linear: Yes
    SOC: Yes
    SDP: Yes
-   exponential: No
+   exponential: Yes
+   boolean: No
+   integer: No
 
 ECOS:
   packagename: "ECOS"
@@ -15,3 +17,16 @@ ECOS:
    SOC: Yes
    SDP: Yes
    exponential: No
+   boolean: Yes
+   integer: Yes
+
+Cbc:
+  packagename: "Cbc"
+  solvername: "CbcSolver()"
+  cones:
+   linear: Yes
+   SOC: No
+   SDP: No
+   exponential: No
+   boolean: Yes
+   integer: Yes
