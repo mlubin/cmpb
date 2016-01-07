@@ -1,4 +1,4 @@
-- name: SCS
+SCS:
   packagename: "SCS"
   solvername: "SCSSolver()"
   cones:
@@ -7,7 +7,7 @@
    SDP: Yes
    exponential: No
 
-- name: ECOS
+ECOS:
   packagename: "ECOS"
   solvername: "ECOSSolver()"
   cones:
