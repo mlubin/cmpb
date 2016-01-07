@@ -1,0 +1,32 @@
+SCS:
+  packagename: "SCS"
+  solvername: "SCSSolver()"
+  cones:
+   linear: Yes
+   SOC: Yes
+   SDP: Yes
+   exponential: Yes
+   boolean: No
+   integer: No
+
+ECOS:
+  packagename: "ECOS"
+  solvername: "ECOSSolver()"
+  cones:
+   linear: Yes
+   SOC: Yes
+   SDP: Yes
+   exponential: No
+   boolean: Yes
+   integer: Yes
+
+Cbc:
+  packagename: "Cbc"
+  solvername: "CbcSolver()"
+  cones:
+   linear: Yes
+   SOC: No
+   SDP: No
+   exponential: No
+   boolean: Yes
+   integer: Yes

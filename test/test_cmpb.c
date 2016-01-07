@@ -15,13 +15,13 @@ const int nconstr = 2;
 const int nnz = 5;
 const int numconstrcones = 1;
 const int64_t constrconetypes[] = { MPBZEROCONE };
-const int64_t constrconeindices1[] = { 0, 1 };
-const int64_t* constrconeindices[] = { constrconeindices1 };
+const int64_t constrconeindices[] = { 0, 1 };
+// const int64_t* constrconeindices[] = { constrconeindices1 };
 const int64_t constrconelengths[] = { 2 };
 const int numvarcones = 1;
 const int64_t varconetypes[] = { MPBNONNEGCONE };
-const int64_t varconeindices1[] = { 0, 1, 2 };
-const int64_t* varconeindices[] = { varconeindices1 };
+const int64_t varconeindices[] = { 0, 1, 2 };
+// const int64_t* varconeindices[] = { varconeindices1 };
 const int64_t varconelengths[] = { 3 };
 
 int main(int argc, char *argv[])
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
                               numvarcones, varconetypes, varconeindices, varconelengths);
 
     ret = mpb_optimize(model);
-    
+
     char status[20];
     ret = mpb_status(model, status, 20);
     printf("STATUS: %s\n",status);
