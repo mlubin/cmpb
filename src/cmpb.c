@@ -73,12 +73,9 @@ jl_value_t* mpb_triplet_to_sparse(const int64_t *I, const int64_t *J, const doub
     objects[2] = mpb_ptr_to_floatvec(V,nnz);
     objects[3] = jl_box_int64(m);
     objects[4] = jl_box_int64(n);
-    jl_(objects[0]);
-    jl_(objects[1]);
 
     jl_function_t *sparse_f = jl_get_function(jl_base_module, "sparse");
     jl_value_t *spmat = jl_call(sparse_f, objects, 5);
-    jl_(jl_exception_occurred());
     assert(!jl_exception_occurred());
 
     JL_GC_POP();
@@ -194,6 +191,26 @@ int mpb_new_solver(const char *packagename, const char *solvername, void **outpu
     *output = solver;
 
     return 0;
+}
+
+
+int mpb_supportscone(void *solver, int64_t conetype) {
+
+    jl_value_t *cones = NULL, *sym = NULL;
+    JL_GC_PUSH2(&solver, &sym);
+    cones = jl_call1(mpb_get_function("supportedcones"), solver);
+    assert(!jl_exception_occurred());
+    sym = int_to_symbol(conetype);
+
+    jl_function_t *in_f = jl_get_function(jl_base_module, "in");
+    jl_value_t * isin = jl_call2(in_f, sym, cones);
+    assert(!jl_exception_occurred());
+    assert(jl_is_bool(isin));
+    int8_t isin_b = jl_unbox_bool(isin);
+
+    JL_GC_POP();
+
+    return isin_b == 1;
 }
 
 // not very important to free the solver, it usually doesn't

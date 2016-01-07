@@ -31,6 +31,8 @@ int mpb_new_model(void *solver, void **output);
 int mpb_free_model(void *model);
 void mpb_atexit(int exitcode);
 
+int mpb_supportscone(void *solver, int64_t conetype);
+
 
 int mpb_loadproblem(void *model, // model pointer
                     int64_t numvar, // number of variables

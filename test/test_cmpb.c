@@ -33,6 +33,11 @@ int main(int argc, char *argv[])
     void *solver;
     mpb_new_solver("ECOS","ECOSSolver()", &solver);
     void *model;
+    assert(mpb_supportscone(solver, MPBNONNEGCONE));
+    assert(mpb_supportscone(solver, MPBSOC));
+    assert(mpb_supportscone(solver, MPBEXPPRIMAL));
+    assert(!mpb_supportscone(solver, MPBSDPCONE));
+
     mpb_new_model(solver, &model);
 
     int ret = mpb_loadproblem(model, nvar, nconstr, c, I, J, V, nnz, b,
