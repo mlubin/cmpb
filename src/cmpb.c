@@ -178,8 +178,8 @@ int mpb_initialize() {
 }
 
 int mpb_new_solver(const char *packagename, const char *solvername, void **output) {
-    char tmp[30];
-    snprintf(tmp, 30, "using %s", packagename);
+    char tmp[200];
+    snprintf(tmp, 200, "using %s", packagename);
     jl_eval_string(tmp);
     assert(!jl_exception_occurred());
 
