@@ -128,7 +128,46 @@ def high_level():
     assert abs(sol[0]-1.0) < 1e-3
     assert abs(sol[1]-0.0) < 1e-3
     assert abs(sol[2]-2.0) < 1e-3
+    del problem
+
+def int_constr():
+    # ----------------- problem data --------------------
+    c = np.array([0, -2, -1]);
+    I = [0,1,2,3];
+    J = [0,0,1,2];
+    V = [1.,-1.,-1.,-1.];
+    b = np.array([1,0,0,0]);
+    nvar = 3;
+    nconstr = 4;
+    nnz = 4;
+    numconstrcones = 2;
+    constrconetypes = [ MPBZEROCONE, MPBSOC ];
+    constrconeindices = [ 0, 1, 2, 3 ];
+    constrconelengths = [ 1, 3 ];
+    numvarcones = 1;
+    varconetypes = [ MPBFREECONE ]
+    varconeindices = [ 0, 1, 2 ]
+    # varconeindices = [ varconeindices1 ]
+    varconelengths = [ 3 ]
+    vartypes = [ MPBCONTVAR, MPBBINVAR, MPBBINVAR ]
+
+    # ---------------------------------------------------
+    constrcones = MPBCones(constrconetypes, constrconelengths, constrconeindices)
+    varcones = MPBCones(varconetypes, varconelengths, varconeindices)
+    A = coo_matrix((V, (I, J)), shape=(nconstr, nvar))
+
+    problem = MPBModel("Pajarito, GLPKMathProgInterface, ECOS","PajaritoSolver(verbose=1,mip_solver=GLPKSolverMIP(),cont_solver=ECOSSolver(verbose=0))", c, A, b,
+    constrcones, varcones, vartypes)
+    problem.optimize()
+    print problem.status()
+    assert abs(problem.getproperty("objval") - (-2)) < 1e-3
+
+    sol = problem.getsolution()
+    assert abs(sol[0]-1.0) < 1e-3
+    assert abs(sol[1]-1.0) < 1e-3
+    assert abs(sol[2]-0.0) < 1e-3
 
 if __name__ == "__main__":
     low_level()
     high_level()
+    int_constr()
