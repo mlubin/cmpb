@@ -8,6 +8,9 @@ compiler:
 notifications:
     email: false
 sudo: false
+addons:
+  apt_packages:
+  - libgmp-dev
 before_install:
     - mkdir -p ~/julia
     - if [ `uname` = "Linux" ]; then
@@ -18,7 +21,9 @@ before_install:
     - export PATH="${PATH}:${HOME}/julia/bin"
     - julia -e 'versioninfo()'
     - julia -e 'Pkg.add("ECOS")'
-    - julia -e 'import MathProgBase; import ECOS'
+    - julia -e 'Pkg.add("GLPKMathProgInterface")'
+    - julia -e 'Pkg.add("Pajarito")'
+    - julia -e 'import MathProgBase, ECOS, GLPKMathProgInterface, Pajarito'
 script:
     - make
     - make test_cmpb

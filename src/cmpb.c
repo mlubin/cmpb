@@ -84,7 +84,7 @@ jl_value_t* mpb_triplet_to_sparse(const int64_t *I, const int64_t *J, const doub
 }
 
 
-jl_value_t* int_to_symbol(int64_t val) {
+jl_value_t* int_to_conesymbol(int64_t val) {
     switch (val) {
         case MPBFREECONE:
             return (jl_value_t*)jl_symbol("Free");
@@ -110,6 +110,24 @@ jl_value_t* int_to_symbol(int64_t val) {
     }
 }
 
+jl_value_t* int_to_categorysymbol(int64_t val) {
+    switch (val) {
+        case MPBCONTVAR:
+            return (jl_value_t*)jl_symbol("Cont");
+        case MPBINTVAR:
+            return (jl_value_t*)jl_symbol("Int");
+        case MPBBINVAR:
+            return (jl_value_t*)jl_symbol("Bin");
+        case MPBSEMICONTVAR:
+            return (jl_value_t*)jl_symbol("SemiCont");
+        case MPBSEMIINTVAR:
+            return (jl_value_t*)jl_symbol("SemiInt");
+        default:
+            assert(0 && "Unrecognized variable category value");
+            return (jl_value_t*)jl_symbol("Error");
+    }
+}
+
 // MUST GC_PUSH the returned value
 // Generates a vector with a list of cones, to be used as input for loadproblem!
 jl_value_t* mpb_conevector(int64_t numcones, const int64_t *conetypes, const int64_t *coneindices, const int64_t *conelengths) {
@@ -121,7 +139,7 @@ jl_value_t* mpb_conevector(int64_t numcones, const int64_t *conetypes, const int
     int i;
     int offset = 0;
     for (i = 0; i < numcones; i++) {
-        conesymbol = int_to_symbol(conetypes[i]);
+        conesymbol = int_to_conesymbol(conetypes[i]);
         indexvector = mpb_ptr_to_intvec(coneindices + offset, conelengths[i]);
         conetuple = jl_new_struct(jl_eval_string("Tuple{Symbol,Vector{Int64}}"), conesymbol, indexvector);
         assert(!jl_exception_occurred());
@@ -200,7 +218,7 @@ int mpb_supportscone(void *solver, int64_t conetype) {
     JL_GC_PUSH2(&solver, &sym);
     cones = jl_call1(mpb_get_function("supportedcones"), solver);
     assert(!jl_exception_occurred());
-    sym = int_to_symbol(conetype);
+    sym = int_to_conesymbol(conetype);
 
     jl_function_t *in_f = jl_get_function(jl_base_module, "in");
     jl_value_t * isin = jl_call2(in_f, sym, cones);
@@ -348,6 +366,33 @@ int mpb_getdual(void *model, double *output) {
     assert(ret == 0);
 
     mpb_fill_floatvec(sol, output, numconstr);
+
+    JL_GC_POP();
+
+    return 0;
+}
+
+// assuming vartypes is of length len
+int mpb_setvartype(void *model, const int64_t *vartypes, int64_t len) {
+    int64_t numvar;
+    int ret = mpb_numvar(model, &numvar);
+    assert(ret == 0);
+    assert(len <= numvar);
+
+    jl_value_t *catvector = NULL, *catsymbol;
+    JL_GC_PUSH1(&catvector);
+    jl_function_t *push_f = jl_get_function(jl_base_module, "push!");
+    catvector = jl_eval_string("Array(Symbol,0)");
+
+    int i;
+    for (i = 0; i < len; i++) {
+        catsymbol = int_to_categorysymbol(vartypes[i]);
+        jl_call2(push_f, catvector, catsymbol);
+        assert(!jl_exception_occurred());
+    }
+
+    jl_call2(mpb_get_function("setvartype!"), (jl_value_t*)model, catvector);
+    assert(!jl_exception_occurred());
 
     JL_GC_POP();
 

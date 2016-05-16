@@ -14,6 +14,12 @@
 #define MPBEXPPRIMAL 7
 #define MPBEXPDUAL 8
 
+#define MPBCONTVAR 0
+#define MPBINTVAR 1
+#define MPBBINVAR 2
+#define MPBSEMICONTVAR 3
+#define MPBSEMIINTVAR 4
+
 int mpb_initialize(void);
 void mpb_atexit(int exitcode);
 
@@ -56,6 +62,7 @@ int mpb_loadproblem(void *model, // model pointer
 int mpb_getsolution(void *model, double *output);
 int mpb_getdual(void *model, double *output);
 int mpb_optimize(void *model);
+int mpb_setvartype(void *model, const int64_t *vartypes, int64_t len);
 int mpb_status(void *model, char *output, int64_t len);
 
 int mpb_checkpackage(const char *packagename);
