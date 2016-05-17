@@ -6,6 +6,7 @@ from site import getsitepackages
 from scipy.sparse import coo_matrix
 from operator import add as op_add
 from yaml import safe_load
+import atexit
 
 # int64_t *, double * pointers
 c_int64_p = POINTER(c_int64)
@@ -39,6 +40,12 @@ MPBSOCROTATED = 5
 MPBSDPCONE = 6
 MPBEXPPRIMAL = 7
 MPBEXPDUAL = 8
+
+MPBCONTVAR = 0
+MPBINTVAR = 1
+MPBBINVAR = 2
+MPBSEMICONTVAR = 3
+MPBSEMIINTVAR = 4
 
 STATUS_BUFFER_LENGTH = 100
 
@@ -88,6 +95,7 @@ lib.mpb_getsolution.argtypes = [c_void_p, c_double_p]
 lib.mpb_getdual.argtypes = [c_void_p, c_double_p]
 lib.mpb_status.argtypes = [c_void_p, c_char_p, c_int64]
 lib.mpb_checkpackage.argtypes = [c_char_p]
+lib.mpb_setvartype.argtypes = [c_void_p, c_int64_p, c_int64]
 
 # define return types
 lib.mpb_initialize.restype = c_int
@@ -108,22 +116,11 @@ lib.mpb_getdual.restype = c_int
 lib.mpb_optimize.restype = c_int
 lib.mpb_status.restype = c_int
 lib.mpb_checkpackage.restype = c_int
+lib.mpb_setvartype.restype = c_int
 
 # --------------- #
 # Python bindings #
 # --------------- #
-
-# load solver info
-solver_file = open(path.join(CMPB_HOME, "solvers.yml"), 'r')
-MPB_solvers = safe_load(solver_file)
-solver_file.close()
-
-# check available solvers
-# TODO: fix stub code in C, currently returns 0
-for i, sol in MPB_solvers.iteritems():
-    sol["exists"] = lib.mpb_check_package(sol["packagename"])
-
-
 
 def MPB_CHECKERR(err):
     if err != 0:
@@ -136,10 +133,7 @@ create/exit MPB environment
 '''
 def MPB_initialize():
     MPB_CHECKERR( lib.mpb_initialize() )
-
-def MPB_exit():
-    lib.mpb_atexit(0)
-
+    atexit.register(lib.mpb_atexit, 0)
 
 '''
 MPBCones constructor
@@ -201,9 +195,12 @@ class MPBModel(object):
 
     @param varcones:
         description of variable cones as MPBCones object
+
+    @param vartypes:
+        Optional description of variable types.
     '''
     def __init__(self, packagename, solvername,
-        c, A, b, constrcones, varcones):
+        c, A, b, constrcones, varcones, vartypes=None):
 
         if not isinstance(A, coo_matrix):
             TypeError("input A must be a scipy.sparse coo_matrix")
@@ -232,6 +229,7 @@ class MPBModel(object):
         # load problem data into MathProgBase model
         self.numvar = A.shape[1]
         self.numconstr = A.shape[0]
+        self.vartypes = vartypes
 
         row_arr = A.row.astype(int64)
         col_arr = A.col.astype(int64)
@@ -247,6 +245,11 @@ class MPBModel(object):
             constrcones.index_ptr, constrcones.length_ptr,
             varcones.num, varcones.type_ptr,
             varcones.index_ptr, varcones.length_ptr) )
+
+        if self.vartypes is not None:
+            self.var_arr = array(self.vartypes).astype(int64)
+            MPB_CHECKERR( lib.mpb_setvartype(self.ptr,
+                ndarray_pointer(self.var_arr), self.numvar) )
 
         # create arrays for solution and dual
         self.solution = ndarray(self.numvar, dtype=float64)
@@ -308,5 +311,3 @@ class MPBModel(object):
     def __del__(self):
         del self.solver
         MPB_CHECKERR( lib.mpb_free_model(self.ptr) )
-        MPB_exit()
-
