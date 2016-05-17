@@ -84,7 +84,7 @@ def low_level():
     lib.mpb_free_model(model)
     lib.mpb_free_solver(solver)
 
-    lib.mpb_atexit(0)
+    # lib.mpb_atexit(0)
     return 0
 
 def high_level():
@@ -128,9 +128,9 @@ def high_level():
     assert abs(sol[0]-1.0) < 1e-3
     assert abs(sol[1]-0.0) < 1e-3
     assert abs(sol[2]-2.0) < 1e-3
-    del problem
 
 def int_constr():
+
     # ----------------- problem data --------------------
     c = np.array([0, -2, -1]);
     I = [0,1,2,3];

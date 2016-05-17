@@ -6,6 +6,7 @@ from site import getsitepackages
 from scipy.sparse import coo_matrix
 from operator import add as op_add
 from yaml import safe_load
+import atexit
 
 # int64_t *, double * pointers
 c_int64_p = POINTER(c_int64)
@@ -132,10 +133,7 @@ create/exit MPB environment
 '''
 def MPB_initialize():
     MPB_CHECKERR( lib.mpb_initialize() )
-
-def MPB_exit():
-    lib.mpb_atexit(0)
-
+    atexit.register(lib.mpb_atexit, 0)
 
 '''
 MPBCones constructor
@@ -249,7 +247,7 @@ class MPBModel(object):
             varcones.index_ptr, varcones.length_ptr) )
 
         if self.vartypes is not None:
-            self.var_arr = array(vartypes).astype(int64)
+            self.var_arr = array(self.vartypes).astype(int64)
             MPB_CHECKERR( lib.mpb_setvartype(self.ptr,
                 ndarray_pointer(self.var_arr), self.numvar) )
 
@@ -313,5 +311,3 @@ class MPBModel(object):
     def __del__(self):
         del self.solver
         MPB_CHECKERR( lib.mpb_free_model(self.ptr) )
-        MPB_exit()
-
